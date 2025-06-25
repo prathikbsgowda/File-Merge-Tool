@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python File Merge Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #7a7878 0%, #727070 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .step {
+            margin-bottom: 40px;
+            opacity: 0.3;
+            transition: all 0.3s ease;
+        }
+
+        .step.active {
+            opacity: 1;
+        }
+
+        .step-title {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #2196F3;
+            display: inline-block;
+        }
+
+        .file-upload-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .file-upload {
+            border: 3px dashed #ddd;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .file-upload:hover {
+            border-color: #2196F3;
+            background: #e3f2fd;
+        }
+
+        .file-upload.dragover {
+            border-color: #2196F3;
+            background: #e3f2fd;
+            transform: scale(1.02);
+        }
+
+        .upload-input {
+            display: none;
+        }
+
+        .upload-button {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .upload-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.4);
+        }
+
+        .file-info {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+
+        .columns-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .column-list {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .column-list h4 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .column-item {
+            background: white;
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 4px solid #2196F3;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .merge-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .merge-type {
+            background: #f8f9fa;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .merge-type:hover {
+            border-color: #2196F3;
+            transform: translateY(-2px);
+        }
+
+        .merge-type.selected {
+            border-color: #2196F3;
+            background: #e3f2fd;
+        }
+
+        .merge-type h4 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .merge-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .select-wrapper {
+            position: relative;
+        }
+
+        .select-wrapper select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background: white;
+            font-size: 1rem;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .select-wrapper::after {
+            content: '▼';
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            pointer-events: none;
+        }
+
+        .merge-button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px auto;
+            display: block;
+        }
+
+        .merge-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .merge-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .result-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .shape-info {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        .shape-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #2196F3;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .column-selection {
+            margin-top: 20px;
+        }
+
+        .column-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .column-checkbox {
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .column-checkbox input {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+
+        .download-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .download-button {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+        }
+
+        .download-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .preview-table th,
+        .preview-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .preview-table th {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            font-weight: bold;
+        }
+
+        .preview-table tr:hover {
+            background: #f5f5f5;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #c62828;
+            margin: 10px 0;
+        }
+
+        .success-message {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #2e7d32;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1></h1>
+            <p></p>
+        </div>
+
+        <div class="content">
+            <!-- Step 1: File Upload -->
+            <div class="step active" id="step1">
+                <div class="step-title">📁 Step 1: Upload Files</div>
+                <div class="file-upload-section">
+                    <div class="file-upload" id="fileUpload1">
+                        <h3>File 1</h3>
+                        <p>Drop CSV or Excel file here or click to browse</p>
+                        <input type="file" id="file1" class="upload-input" accept=".csv,.xlsx,.xls">
+                        <button class="upload-button" onclick="document.getElementById('file1').click()">Choose File</button>
+                        <div class="file-info" id="file1Info"></div>
+                    </div>
+                    <div class="file-upload" id="fileUpload2">
+                        <h3>File 2</h3>
+                        <p>Drop CSV or Excel file here or click to browse</p>
+                        <input type="file" id="file2" class="upload-input" accept=".csv,.xlsx,.xls">
+                        <button class="upload-button" onclick="document.getElementById('file2').click()">Choose File</button>
+                        <div class="file-info" id="file2Info"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Display Columns -->
+            <div class="step" id="step2">
+                <div class="step-title">📊 Step 2: File Columns</div>
+                <div class="columns-display">
+                    <div class="column-list">
+                        <h4>File 1 Columns</h4>
+                        <div id="file1Columns"></div>
+                    </div>
+                    <div class="column-list">
+                        <h4>File 2 Columns</h4>
+                        <div id="file2Columns"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Merge Options -->
+            <div class="step" id="step3">
+                <div class="step-title">⚙️ Step 3: Select Merge Type</div>
+                <div class="merge-options">
+                    <div class="merge-type" data-type="inner">
+                        <h4>Inner Join</h4>
+                        <p>Only matching records from both files</p>
+                    </div>
+                    <div class="merge-type" data-type="left">
+                        <h4>Left Join</h4>
+                        <p>All records from File 1 + matching from File 2</p>
+                    </div>
+                    <div class="merge-type" data-type="right">
+                        <h4>Right Join</h4>
+                        <p>All records from File 2 + matching from File 1</p>
+                    </div>
+                    <div class="merge-type" data-type="outer">
+                        <h4>Outer Join</h4>
+                        <p>All records from both files</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Select Merge Columns -->
+            <div class="step" id="step4">
+                <div class="step-title">🔗 Step 4: Select Merge Columns</div>
+                <div class="merge-columns">
+                    <div>
+                        <h4>File 1 Merge Column:</h4>
+                        <div class="select-wrapper">
+                            <select id="file1MergeColumn">
+                                <option value="">Select column...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <h4>File 2 Merge Column:</h4>
+                        <div class="select-wrapper">
+                            <select id="file2MergeColumn">
+                                <option value="">Select column...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button class="merge-button" id="mergeButton" onclick="performMerge()" disabled>Perform Merge</button>
+            </div>
+
+            <!-- Step 5: Results -->
+            <div class="step" id="step5">
+                <div class="step-title">📈 Step 5: Merge Results</div>
+                <div class="result-section" id="resultSection" style="display: none;">
+                    <div class="shape-info">
+                        <div class="shape-card">
+                            <h4>Original File 1</h4>
+                            <p id="file1Shape">0 rows × 0 columns</p>
+                        </div>
+                        <div class="shape-card">
+                            <h4>Original File 2</h4>
+                            <p id="file2Shape">0 rows × 0 columns</p>
+                        </div>
+                        <div class="shape-card">
+                            <h4>Merged Result</h4>
+                            <p id="mergedShape">0 rows × 0 columns</p>
+                        </div>
+                    </div>
+
+                    <div class="column-selection">
+                        <h4>Select Columns to Save:</h4>
+                        <div style="text-align: center; margin: 10px 0;">
+                            <button onclick="selectAllColumns()" style="margin: 0 5px; padding: 8px 16px; border: 1px solid #2196F3; background: white; color: #2196F3; border-radius: 5px; cursor: pointer;">Select All</button>
+                            <button onclick="deselectAllColumns()" style="margin: 0 5px; padding: 8px 16px; border: 1px solid #f44336; background: white; color: #f44336; border-radius: 5px; cursor: pointer;">Deselect All</button>
+                        </div>
+                        <div class="column-grid" id="columnSelection"></div>
+                    </div>
+
+                    <div class="download-section">
+                        <button class="download-button" onclick="downloadCSV()">Download as CSV</button>
+                        <button class="download-button" onclick="downloadExcel()">Download as Excel</button>
+                    </div>
+
+                    <div id="previewContainer">
+                        <h4>Data Preview (First 10 rows):</h4>
+                        <div style="overflow-x: auto;">
+                            <table class="preview-table" id="previewTable"></table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let file1Data = null;
+        let file2Data = null;
+        let mergedData = null;
+        let selectedMergeType = null;
+
+        // File upload handlers
+        function setupFileUpload() {
+            const file1Input = document.getElementById('file1');
+            const file2Input = document.getElementById('file2');
+            const upload1 = document.getElementById('fileUpload1');
+            const upload2 = document.getElementById('fileUpload2');
+
+            [file1Input, file2Input].forEach((input, index) => {
+                input.addEventListener('change', (e) => handleFileSelect(e, index + 1));
+            });
+
+            [upload1, upload2].forEach((upload, index) => {
+                upload.addEventListener('dragover', handleDragOver);
+                upload.addEventListener('drop', (e) => handleDrop(e, index + 1));
+                upload.addEventListener('dragleave', handleDragLeave);
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('dragover');
+        }
+
+        function handleDrop(e, fileNumber) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const input = document.getElementById(`file${fileNumber}`);
+                input.files = files;
+                handleFileSelect({ target: input }, fileNumber);
+            }
+        }
+
+        function handleFileSelect(event, fileNumber) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fileInfo = document.getElementById(`file${fileNumber}Info`);
+            fileInfo.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+
+            readFile(file, fileNumber);
+        }
+
+        function readFile(file, fileNumber) {
+            const extension = file.name.split('.').pop().toLowerCase();
+            
+            if (extension === 'csv') {
+                readCSV(file, fileNumber);
+            } else if (extension === 'xlsx' || extension === 'xls') {
+                readExcel(file, fileNumber);
+            } else {
+                showError('Unsupported file format. Please upload CSV or Excel files.');
+            }
+        }
+
+        function readCSV(file, fileNumber) {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (results.errors.length > 0) {
+                        showError(`Error reading CSV: ${results.errors[0].message}`);
+                        return;
+                    }
+                    
+                    if (fileNumber === 1) {
+                        file1Data = results.data;
+                    } else {
+                        file2Data = results.data;
+                    }
+                    
+                    updateColumnsDisplay();
+                    checkFilesLoaded();
+                }
+            });
+        }
+
+        function readExcel(file, fileNumber) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    if (fileNumber === 1) {
+                        file1Data = jsonData;
+                    } else {
+                        file2Data = jsonData;
+                    }
+                    
+                    updateColumnsDisplay();
+                    checkFilesLoaded();
+                } catch (error) {
+                    showError(`Error reading Excel file: ${error.message}`);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function updateColumnsDisplay() {
+            if (file1Data) {
+                const columns1 = Object.keys(file1Data[0] || {});
+                const container1 = document.getElementById('file1Columns');
+                container1.innerHTML = columns1.map(col => 
+                    `<div class="column-item">${col}</div>`
+                ).join('');
+
+                // Update merge column select
+                const select1 = document.getElementById('file1MergeColumn');
+                select1.innerHTML = '<option value="">Select column...</option>' +
+                    columns1.map(col => `<option value="${col}">${col}</option>`).join('');
+            }
+
+            if (file2Data) {
+                const columns2 = Object.keys(file2Data[0] || {});
+                const container2 = document.getElementById('file2Columns');
+                container2.innerHTML = columns2.map(col => 
+                    `<div class="column-item">${col}</div>`
+                ).join('');
+
+                // Update merge column select
+                const select2 = document.getElementById('file2MergeColumn');
+                select2.innerHTML = '<option value="">Select column...</option>' +
+                    columns2.map(col => `<option value="${col}">${col}</option>`).join('');
+            }
+        }
+
+        function checkFilesLoaded() {
+            if (file1Data && file2Data) {
+                activateStep(2);
+                activateStep(3);
+                activateStep(4);
+            }
+        }
+
+        function activateStep(stepNumber) {
+            document.getElementById(`step${stepNumber}`).classList.add('active');
+        }
+
+        // Merge type selection
+        document.addEventListener('DOMContentLoaded', function() {
+            setupFileUpload();
+            
+            const mergeTypes = document.querySelectorAll('.merge-type');
+            mergeTypes.forEach(type => {
+                type.addEventListener('click', function() {
+                    mergeTypes.forEach(t => t.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedMergeType = this.dataset.type;
+                    checkMergeReady();
+                });
+            });
+
+            // Monitor merge column selection
+            document.getElementById('file1MergeColumn').addEventListener('change', checkMergeReady);
+            document.getElementById('file2MergeColumn').addEventListener('change', checkMergeReady);
+        });
+
+        function checkMergeReady() {
+            const file1Col = document.getElementById('file1MergeColumn').value;
+            const file2Col = document.getElementById('file2MergeColumn').value;
+            const mergeButton = document.getElementById('mergeButton');
+            
+            if (file1Data && file2Data && selectedMergeType && file1Col && file2Col) {
+                mergeButton.disabled = false;
+            } else {
+                mergeButton.disabled = true;
+            }
+        }
+
+        function performMerge() {
+            const file1Col = document.getElementById('file1MergeColumn').value;
+            const file2Col = document.getElementById('file2MergeColumn').value;
+
+            try {
+                mergedData = mergeDataFrames(file1Data, file2Data, file1Col, file2Col, selectedMergeType);
+                
+                // Update shape information
+                document.getElementById('file1Shape').textContent = `${file1Data.length} rows × ${Object.keys(file1Data[0] || {}).length} columns`;
+                document.getElementById('file2Shape').textContent = `${file2Data.length} rows × ${Object.keys(file2Data[0] || {}).length} columns`;
+                document.getElementById('mergedShape').textContent = `${mergedData.length} rows × ${Object.keys(mergedData[0] || {}).length} columns`;
+
+                // Show results
+                document.getElementById('resultSection').style.display = 'block';
+                activateStep(5);
+
+                // Setup column selection
+                setupColumnSelection();
+                
+                // Show preview
+                showPreview();
+
+                showSuccess(`Merge completed successfully! ${mergedData.length} rows created.`);
+            } catch (error) {
+                showError(`Merge failed: ${error.message}`);
+            }
+        }
+
+        function mergeDataFrames(df1, df2, col1, col2, joinType) {
+            const result = [];
+            
+            if (joinType === 'inner') {
+                df1.forEach(row1 => {
+                    const matches = df2.filter(row2 => row1[col1] === row2[col2]);
+                    matches.forEach(row2 => {
+                        result.push({ ...row1, ...row2 });
+                    });
+                });
+            } else if (joinType === 'left') {
+                df1.forEach(row1 => {
+                    const matches = df2.filter(row2 => row1[col1] === row2[col2]);
+                    if (matches.length > 0) {
+                        matches.forEach(row2 => {
+                            result.push({ ...row1, ...row2 });
+                        });
+                    } else {
+                        result.push({ ...row1 });
+                    }
+                });
+            } else if (joinType === 'right') {
+                df2.forEach(row2 => {
+                    const matches = df1.filter(row1 => row1[col1] === row2[col2]);
+                    if (matches.length > 0) {
+                        matches.forEach(row1 => {
+                            result.push({ ...row1, ...row2 });
+                        });
+                    } else {
+                        result.push({ ...row2 });
+                    }
+                });
+            } else if (joinType === 'outer') {
+                const processedKeys = new Set();
+                
+                df1.forEach(row1 => {
+                    const matches = df2.filter(row2 => row1[col1] === row2[col2]);
+                    if (matches.length > 0) {
+                        matches.forEach(row2 => {
+                            result.push({ ...row1, ...row2 });
+                            processedKeys.add(row2[col2]);
+                        });
+                    } else {
+                        result.push({ ...row1 });
+                    }
+                });
+                
+                df2.forEach(row2 => {
+                    if (!processedKeys.has(row2[col2])) {
+                        result.push({ ...row2 });
+                    }
+                });
+            }
+            
+            return result;
+        }
+
+        function setupColumnSelection() {
+            if (!mergedData || mergedData.length === 0) return;
+            
+            const columns = Object.keys(mergedData[0]);
+            const container = document.getElementById('columnSelection');
+            
+            container.innerHTML = columns.map(col => `
+                <div class="column-checkbox">
+                    <input type="checkbox" id="col_${col}" value="${col}" checked>
+                    <label for="col_${col}">${col}</label>
+                </div>
+            `).join('');
+        }
+
+        function selectAllColumns() {
+            const checkboxes = document.querySelectorAll('#columnSelection input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = true);
+        }
+
+        function deselectAllColumns() {
+            const checkboxes = document.querySelectorAll('#columnSelection input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+        }
+
+        function getSelectedColumns() {
+            const checkboxes = document.querySelectorAll('#columnSelection input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        function showPreview() {
+            if (!mergedData || mergedData.length === 0) return;
+            
+            const selectedColumns = getSelectedColumns();
+            const previewData = mergedData.slice(0, 10);
+            const table = document.getElementById('previewTable');
+            
+            let html = '<thead><tr>';
+            selectedColumns.forEach(col => {
+                html += `<th>${col}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            previewData.forEach(row => {
+                html += '<tr>';
+                selectedColumns.forEach(col => {
+                    html += `<td>${row[col] || ''}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody>';
+            table.innerHTML = html;
+        }
+
+        function downloadCSV() {
+            const selectedColumns = getSelectedColumns();
+            if (selectedColumns.length === 0) {
+                showError('Please select at least one column to download.');
+                return;
+            }
+            
+            const filteredData = mergedData.map(row => {
+                const newRow = {};
+                selectedColumns.forEach(col => {
+                    newRow[col] = row[col] || '';
+                });
+                return newRow;
+            });
+            
+            const csv = Papa.unparse(filteredData);
+            downloadFile(csv, 'merged_data.csv', 'text/csv');
+            showSuccess('CSV file downloaded successfully!');
+        }
+
+        function downloadExcel() {
+            const selectedColumns = getSelectedColumns();
+            if (selectedColumns.length === 0) {
+                showError('Please select at least one column to download.');
+                return;
+            }
+            
+            const filteredData = mergedData.map(row => {
+                const newRow = {};
+                selectedColumns.forEach(col => {
+                    newRow[col] = row[col] || '';
+                });
+                return newRow;
+            });
+            
+            const ws = XLSX.utils.json_to_sheet(filteredData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Merged Data');
+            
+            XLSX.writeFile(wb, 'merged_data.xlsx');
+            showSuccess('Excel file downloaded successfully!');
+        }
+
+        function downloadFile(content, filename, contentType) {
+            const blob = new Blob([content], { type: contentType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        function showError(message) {
+            // Remove existing messages
+            const existingMessages = document.querySelectorAll('.error-message, .success-message');
+            existingMessages.forEach(msg => msg.remove());
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            
+            const content = document.querySelector('.content');
+            content.insertBefore(errorDiv, content.firstChild);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (errorDiv.parentNode) {
+                    errorDiv.remove();
+                }
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            // Remove existing messages
+            const existingMessages = document.querySelectorAll('.error-message, .success-message');
+            existingMessages.forEach(msg => msg.remove());
+            
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            successDiv.textContent = message;
+            
+            const content = document.querySelector('.content');
+            content.insertBefore(successDiv, content.firstChild);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                if (successDiv.parentNode) {
+                    successDiv.remove();
+                }
+            }, 3000);
+        }
+
+        // Update preview when column selection changes
+        document.addEventListener('change', function(e) {
+            if (e.target.matches('#columnSelection input[type="checkbox"]')) {
+                showPreview();
+            }
+        });
+
+        // Initialize tooltips and help text
+        function addTooltips() {
+            const mergeTypes = document.querySelectorAll('.merge-type');
+            mergeTypes.forEach(type => {
+                type.title = getTooltipText(type.dataset.type);
+            });
+        }
+
+        function getTooltipText(mergeType) {
+            const tooltips = {
+                'inner': 'Inner Join: Returns only rows that have matching values in both tables',
+                'left': 'Left Join: Returns all rows from the left table, and matched rows from the right table',
+                'right': 'Right Join: Returns all rows from the right table, and matched rows from the left table',
+                'outer': 'Outer Join: Returns all rows when there is a match in either left or right table'
+            };
+            return tooltips[mergeType] || '';
+        }
+
+        // Initialize everything when page loads
+        window.addEventListener('load', function() {
+            addTooltips();
+            console.log('Python File Merge Tool initialized successfully!');
+        });
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + A to select all columns
+            if ((e.ctrlKey || e.metaKey) && e.key === 'a' && e.target.closest('#columnSelection')) {
+                e.preventDefault();
+                selectAllColumns();
+            }
+            
+            // Ctrl/Cmd + D to deselect all columns
+            if ((e.ctrlKey || e.metaKey) && e.key === 'd' && e.target.closest('#columnSelection')) {
+                e.preventDefault();
+                deselectAllColumns();
+            }
+        });
+
+        // Add loading animation for merge operation
+        function showLoadingAnimation() {
+            const mergeButton = document.getElementById('mergeButton');
+            const originalText = mergeButton.textContent;
+            mergeButton.textContent = 'Merging... ⏳';
+            mergeButton.disabled = true;
+            
+            return function hideLoading() {
+                mergeButton.textContent = originalText;
+                mergeButton.disabled = false;
+            };
+        }
+
+        // Enhanced merge function with loading animation
+        const originalPerformMerge = performMerge;
+        performMerge = function() {
+            const hideLoading = showLoadingAnimation();
+            
+            // Use setTimeout to allow UI to update
+            setTimeout(() => {
+                try {
+                    originalPerformMerge();
+                } catch (error) {
+                    showError(`Merge failed: ${error.message}`);
+                } finally {
+                    hideLoading();
+                }
+            }, 100);
+        };
+
+        // Add data validation
+        function validateData(data, fileName) {
+            if (!data || data.length === 0) {
+                throw new Error(`${fileName} is empty or could not be read properly.`);
+            }
+            
+            if (!data[0] || Object.keys(data[0]).length === 0) {
+                throw new Error(`${fileName} has no columns or invalid structure.`);
+            }
+            
+            return true;
+        }
+
+        // Enhanced file reading with validation
+        const originalReadCSV = readCSV;
+        readCSV = function(file, fileNumber) {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (results.errors.length > 0) {
+                        showError(`Error reading CSV: ${results.errors[0].message}`);
+                        return;
+                    }
+                    
+                    try {
+                        validateData(results.data, `File ${fileNumber}`);
+                        
+                        if (fileNumber === 1) {
+                            file1Data = results.data;
+                        } else {
+                            file2Data = results.data;
+                        }
+                        
+                        updateColumnsDisplay();
+                        checkFilesLoaded();
+                        showSuccess(`File ${fileNumber} loaded successfully! (${results.data.length} rows)`);
+                    } catch (error) {
+                        showError(error.message);
+                    }
+                }
+            });
+        };
+
+        const originalReadExcel = readExcel;
+        readExcel = function(file, fileNumber) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    validateData(jsonData, `File ${fileNumber}`);
+                    
+                    if (fileNumber === 1) {
+                        file1Data = jsonData;
+                    } else {
+                        file2Data = jsonData;
+                    }
+                    
+                    updateColumnsDisplay();
+                    checkFilesLoaded();
+                    showSuccess(`File ${fileNumber} loaded successfully! (${jsonData.length} rows)`);
+                } catch (error) {
+                    showError(`Error reading Excel file: ${error.message}`);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+    </script>
+</body>
+</html>
