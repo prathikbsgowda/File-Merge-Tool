@@ -26,4 +26,4 @@ Join Types
 Inner: Only matching records
 Left: All from file 1 + matches from file 2
 Right: All from file 2 + matches from file 1
-Outer: All records from both fil
+Outer: All records from both files
